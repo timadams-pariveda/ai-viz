@@ -6,6 +6,23 @@ var particles = new Array(binCount);
 var qrcode;
 let audioStarted = false;
 let mobileDevice = false;
+let configs = {
+  original : {
+    width: (x) => random(x),
+    height: (x) => random(x+500),
+    speedScale: () => 1,
+    orientation: "y",
+    direction: -1
+  },
+  pp24 : {
+    width: (x) => 0,
+    height: (x) => random(x * 0.3, x),
+    speedScale: () => random(1, 3),
+    orientation: "x",
+    direction: 1
+  }
+}
+mode = "original"
 
 function setup() {
   c = createCanvas(window.innerWidth, window.innerHeight);
@@ -24,7 +41,7 @@ function setup() {
 
 
   for (var i = 0; i < particles.length; i++) {
-    var position = createVector(random(width), random(height+500), i);
+    var position = createVector(configs[mode].width(width), configs[mode].height(height), i);
     particles[i] = new Particle(position);
   }
 
@@ -74,7 +91,7 @@ function draw() {
 
 var Particle = function(position) {
   this.position = position;
-  this.speedScale = 1 // how fast particles move
+  this.speedScale = configs[mode].speedScale(); // Adjust this range for desired speed variation
   this.scale = random(0, 0.5); // how big or small particles are
   this.yScale = random(0, 0.5); // more or less vertical movement
   this.color = [random(0, 255), random(0, 255), random(0, 255)];
@@ -93,16 +110,37 @@ Particle.prototype.update = function(frequency, level) {
   if (level * this.scale < 20) {
     this.position.z = 500
   }
-  if(this.position.x + this.speed > windowWidth || this.position.x + this.speed < 0){
-    this.speedScale = -this.speedScale
+
+  if (configs[mode].direction === 1 ) {
+    this.position[configs[mode].orientation] += this.speedScale;
+  } else if (configs[mode].direction === -1 ) {
+    this.position[configs[mode].orientation] -= this.speedScale;
+  } else {
+    this.position[configs[mode].orientation] += this.speedScale;
   }
-  this.speed = map(level, 0, 255, 1, 10)*this.speedScale
-  this.position.x = this.position.x + this.speed
-  this.position.y = this.position.y - level*this.yScale
+  
   if (!onScreen(this.position)) {
     this.position.x = random(width);
     this.position.y = random(height)
   }
+
+  // Adjust vertical position slightly based on audio level, but limit upward movement
+  let verticalMovement = (level * this.yScale - 128 * this.yScale) * 0.1;
+  if (verticalMovement < 0) {
+    verticalMovement *= 0.1; // Reduce upward movement
+  }
+  this.position.y += verticalMovement;
+
+  // Keep particle within vertical bounds, but bias towards bottom
+  let minY = height * 0; // Particles can't go above 30% of screen height
+  let maxY = height;
+  this.position.y = constrain(this.position.y, minY, maxY);
+
+  // Add a small chance for particles to move down
+  if (random(1) < 0.05) { // 5% chance each frame
+    this.position.y += random(1, 5);
+  }
+
   this.diameter = level * this.scale;
 }
 
