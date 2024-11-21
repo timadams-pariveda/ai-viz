@@ -3,12 +3,14 @@ var fft, amplitude;
 var smoothing = 0.9;
 var binCount = 8192;
 var total = 0;
-var particles = new Array(0);
+var lines = new Array(0);
 let audioStarted = false;
 let silenceFlag = true;
 let oilEruption = false;
 var eruptions = new Array(0);
-let landImage, waterImage;
+let landImage, landImage2, waterImage, currImage;
+let sliderX, sliderY, sliderWidth, minVolume, maxVolume, sliderVolume, isDragging;
+let micSensitivity, sensitivityModifier;
 let configs = {
     test: {
         width: (x) => 0,
@@ -21,7 +23,8 @@ let configs = {
 mode = "test"
 
 function preload() {
-    landImage = loadImage('./media/Land_Seismic_Picture.png')
+    landImage = loadImage('./media/Land_Seismic_Picture.png');
+    landImage2 = loadImage('./media/Land_Seismic_Picture_Transparent2.png');
 }
 
 function setup() {
@@ -35,9 +38,19 @@ function setup() {
     mic.start();
     fft = new p5.FFT(smoothing, binCount);
     fft.setInput(mic);
+    sensitivityModifier = 0.5;  // EDIT FOR VOLUME SENSITIVITY ADJUSTMENTS [~0.1 Very Sensitive | ~1.0 Less Sensitive]
 
-    image(landImage, 0, 0, width, height, 0, 0, landImage.width, landImage.height, CONTAIN);
-    describe("Seismic diagram used to show how seismic waves can be used to find oil");
+    currImage = landImage;
+
+    sliderX = width * 0.88;     // Initial slider position
+    sliderY = height * 0.97;
+    sliderWidth = width * 0.1;  // Width of the slider track
+    sliderDiameter = width * height * 0.000012;   // Diameter of the slider handle
+    minVolume = 1;              // Minimum value
+    maxVolume = 100;            // Maximum value
+    sliderVolume = 50;          // Initial slider value
+    micSensitivity = sliderVolume * sensitivityModifier;
+    isDragging = false;         // Not dragging initially
 }
 
 function draw() {
@@ -48,111 +61,129 @@ function draw() {
     var volume = (energy[0] + energy[1] + energy[2] + energy[3] + energy[4]) / 5;
 
     image(landImage, 0, 0, width, height);
-
-    // <<----- ORIGINAL LINE DRAWINGS, CAN BE DELETED IF NO MORE TESTING REQUIRED ----->> 
-
-    // noFill();
-    // stroke(255,255,255);
-    // strokeWeight(3);
-    //line(width*0.108, height*0.238, width*0.28, height*0.898);   // far left
-    //line(width*0.108, height*0.238, width*0.305, height*0.886);
-    //line(width*0.108, height*0.238, width*0.33, height*0.875);
-    //line(width*0.108, height*0.238, width*0.355, height*0.864);
-    //line(width*0.108, height*0.238, width*0.38, height*0.854);
-    //line(width*0.108, height*0.238, width*0.4075, height*0.838);
-    //line(width*0.108, height*0.238, width*0.435, height*0.820);
-    //line(width*0.108, height*0.238, width*0.462, height*0.803);  // far right
-
-    // stroke(205,205,205);
-    // strokeWeight(3)
-    // line(width*0.28, height*0.898, width*0.507, height*0.241);
-    // line(width*0.305, height*0.886, width*0.545, height*0.241);
-    // line(width*0.33, height*0.875, width*0.5835, height*0.241);
-    // line(width*0.355, height*0.864, width*0.622, height*0.241);
-    // line(width*0.38, height*0.854, width*0.6605, height*0.241);
-    // line(width*0.4075, height*0.838, width*0.699, height*0.241);
-    // line(width*0.435, height*0.820, width*0.7373, height*0.241);
-    // line(width*0.462, height*0.803, width*0.776, height*0.241);
-
-    // noFill();
-    // stroke(120,120,120);
-    // strokeWeight(15);
-    // line(width*0.4, height*0.21, width*0.4, height);
+    image(currImage, 0, 0, width, height);
     
-    // Create particles (lines) when mic input is received
-    if (volume > 10 && silenceFlag === true) {
+    // Create lines when mic input is received
+    if (volume > micSensitivity && silenceFlag === true) {
         for (var i = 0; i < 8; i++) {
-            if (total < 8192) {
-                var position = createVector(width*0.108, height*0.238, total);
-                particles.push(new Particle(position, i));    
-                total += 1;
-            }
+            var position = createVector(width*0.108, height*0.238, total);
+            lines.push(new Line(position, i));
+            total += 1;
         }
         silenceFlag = false;
     }
-    else if (volume > 10) {
+    if (volume > micSensitivity && total >= 8) {
         for (var i = 0; i < 8; i++) {       // this loop accounts for lines being actively drawn
-            particles[total - 8 + i].updateNew(i, volume);
-            particles[total - 8 + i].draw();
+            lines[total - 8 + i].updateNew(i, volume);
+            lines[total - 8 + i].draw();
         }
         for (var i = 0; i < total - 8; i++) {   // this loop accounts for all others
-            particles[i].update(i, volume);
-            particles[i].draw();
+            lines[i].update(i, volume);
+            lines[i].draw();
         }
     }
     else {
         for (var i = 0; i < total; i++) {
-            particles[i].update(i, volume);
-            particles[i].draw();
+            lines[i].update(i, volume);
+            lines[i].draw();
         }
         silenceFlag = true;
     }
 
-    // draw oil eruption
-    if (oilEruption) {
-        for (var i = 0; i < eruptions.length; i++) {
-            eruptions[i]
-        }
-        stroke(0,0,0);
-        strokeWeight(8);
-        line(width*0.4, height*0.1, width*0.4, height);
-    }
+    // oil pipe
+    drawOilPipe();
+    drawOilEruption();
+    drawOilDerrick();
 
     if (!audioStarted) {
         textSize(32);
         fill(255);
         stroke(0,0,200);
         strokeWeight(3);
-        text("Tap to begin...", window.innerWidth / 2 - 100, window.innerHeight / 2);
+        text("Tap to begin...", window.innerWidth / 2, window.innerHeight / 2);
+    }
+
+    drawVolumeSlider();
+}
+
+// Oil eruption event
+
+var Eruption = function(position) {
+    this.oilEruption = true;
+    this.position = position;
+    this.endPositionY = position.y;
+    this.maxHeight = height*0.062;
+    this.color = [0,0,0];
+    this.particles = new Array(0);
+}
+
+Eruption.prototype.draw = function() {
+    stroke(0,0,0);
+    strokeWeight(width*0.0035);
+    if (this.position.y >= this.maxHeight) {
+        line(this.position.x, this.position.y, this.position.x, this.endPositionY);
+        if (this.endPositionY <= this.maxHeight) {
+            this.particles.push(new Particle(this.position.x, this.endPositionY));
+        }
+    }
+    if (this.endPositionY <= this.maxHeight) {
+        for (var i = 0; i < this.particles.length; i++) {
+            this.particles[i].update();
+            this.particles[i].draw();
+        }
     }
 }
 
-// Key pressed function and oil eruption event
-
-var Eruption = function(position) {
-    this.position = position;
-    this.endPositionY = position.y;
-    this.maxHeight = height*0.1;
-    this.color = [0,0,0];
+Eruption.prototype.update = function() {
+    if (this.endPositionY > this.maxHeight) {
+        this.endPositionY -= 5;
+    }
+    else {
+        if (this.position.y > this.maxHeight) {
+            this.position.y -= 5;
+        }
+        else {
+            this.oilEruption = false;
+        }
+    }
 }
 
-// document.addEventListener('keydown', function(event) {
-//     if (event.key === ' ') {
-//         if (oilEruption) {
-//             oilEruption = false;
-//         }
-//         else {
-//             oilEruption = true;
-//             var position = createVector(width*0.4, height);
-//             eruptions.push(new Eruption(position));
-//         }
-//     }
-// });
+// Particle fountain functions
 
-// Particle functions
+var Particle = function(positionX, positionY) {
+    this.active = true;
+    this.position = createVector(positionX, positionY);
+    this.diameter = random(width*0.005,width*0.01);
+    this.velocity = createVector(random(-(width*0.003),width*0.003), random(-(height*0.01) ,-(height*0.005)));
+    this.decay = random(width*0.0002,width*0.0003);
+}
 
-var Particle = function(position, i) {
+Particle.prototype.draw = function() {
+    if (this.active) {
+        fill(0,0,0,255);
+        noStroke();
+        circle(this.position.x, this.position.y, this.diameter);
+    }
+}
+
+Particle.prototype.update = function() {
+    if (this.diameter > 0) {
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+        this.velocity.y += 0.5;
+        this.diameter -= this.decay;
+    }
+    else {
+        this.active = false;
+        this.diameter = 0;
+    }
+}
+
+// Line functions
+
+var Line = function(position, i) {
     this.position = position;
+    this.i = i;
     this.endPositionX = position.x;
     this.endPositionY = position.y;
     this.reflectPositionX = position.x;
@@ -160,7 +191,6 @@ var Particle = function(position, i) {
     this.speedScale = 1; // Will adjust based on how loud the sound is
     this.reflect = false;
     this.maxHeight = height*0.241;
-    this.maxWidth = width/2;
     this.color = [i*40,0,0];
     switch(i) {
         case 0:
@@ -189,17 +219,18 @@ var Particle = function(position, i) {
             this.minWidth = width*0.462; this.minHeight = height*0.803; this.maxWidth = width*0.776; break;
         default:
             this.slope = 3.84 * (height / width); this.reflectSlope = -2.895 * (height / width);
-            this.minWidth = width*0.28; this.minHeight = height*0.898;
+            this.minWidth = width*0.28; this.minHeight = height*0.898; this.maxWidth = width*0.507;
     }
 }
 
-Particle.prototype.draw = function() {
+Line.prototype.draw = function() {
     if (this.endPositionY >= this.minHeight && !this.reflect) {
         this.reflect = true;
         this.endPositionX = this.minWidth;
         this.endPositionY = this.minHeight;
         this.reflectPositionX = this.endPositionX;
         this.reflectPositionY = this.endPositionY;
+        currImage = landImage2;
     }
     if (this.position.y <= this.minHeight) {
         stroke(this.color);
@@ -215,9 +246,15 @@ Particle.prototype.draw = function() {
         strokeWeight(3);
         line(this.endPositionX, this.endPositionY, this.reflectPositionX, this.reflectPositionY);
     }
+    if (this.reflect && this.position.y <= this.minHeight && this.endPositionY >= this.maxHeight) {
+        currImage = landImage2;
+    }
+    else if (!(this.position.y < this.minHeight) && !(this.endPositionY >= this.maxHeight)) {
+        currImage = landImage;
+    }
 }
 
-Particle.prototype.update = function(frequency, level) {
+Line.prototype.update = function(frequency, level) {
     if (!this.reflect) {
         this.endPositionX += this.speedScale;
         this.endPositionY += this.speedScale * this.slope;
@@ -234,9 +271,10 @@ Particle.prototype.update = function(frequency, level) {
     }
 }
 
-Particle.prototype.updateNew = function(frequency, level) {
-    if ((level / 7) > this.speedScale) {
-        this.speedScale = level / 7;
+Line.prototype.updateNew = function(frequency, level) {
+    if ((level / (micSensitivity * 0.25 + 5) > this.speedScale)) {
+        this.speedScale = level / (micSensitivity * 0.25 + 5);
+        console.log("Speed: " + this.speedScale);
     }
     if (level > 1) {
         if (!this.reflect) {
@@ -257,6 +295,20 @@ Particle.prototype.updateNew = function(frequency, level) {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     background(0);
+
+    resizeObjects();
+}
+
+function resizeObjects() {
+    // resize slider
+    sliderX = width * 0.88;
+    sliderY = height * 0.97;
+    sliderWidth = width * 0.1;
+    sliderDiameter = width * height * 0.000012;
+    // remove lines / eruptions
+    lines = Array(0);
+    eruptions = Array(0);
+    total = 0;
 }
 
 function onScreen(v) {
@@ -269,8 +321,99 @@ function mousePressed() {
         userStartAudio();
         audioStarted = true;
     }
-    if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
-        let fs = fullscreen();
-        fullscreen(!fs);
+    // if (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height) {
+    //     let fs = fullscreen();
+    //     fullscreen(!fs);
+    // }
+    let handleX = map(sliderVolume, minVolume, maxVolume, sliderX, sliderX + sliderWidth);
+    let handleY = sliderY;
+    if (mouseX >= handleX - sliderDiameter && mouseX <= handleX + sliderDiameter && mouseY >= handleY - sliderDiameter && mouseY <= handleY + sliderDiameter) {
+        isDragging = true;
     }
+}
+
+function mouseDragged() {
+    if (isDragging) {
+        let clampedX = constrain(mouseX, sliderX, sliderX + sliderWidth);
+        sliderVolume = map(clampedX, sliderX, sliderX + sliderWidth, minVolume, maxVolume);
+        micSensitivity = sliderVolume * sensitivityModifier;
+    }
+}
+
+function mouseReleased() {
+    isDragging = false;
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === ' ') {
+        oilEruption = true;
+        var position = createVector(width*0.4, height);
+        eruptions.push(new Eruption(position));
+    }
+});
+
+// draw helper functions
+
+function drawOilPipe() {
+    noFill();
+    stroke(120,120,120);
+    strokeWeight(width*0.006);
+    line(width*0.4, height*0.075, width*0.4, height);
+}
+
+function drawOilEruption() {
+    for (var i = 0; i < eruptions.length; i++) {
+        if (eruptions[i].oilEruption) {
+            eruptions[i].update();
+            eruptions[i].draw();
+        }
+        else if (eruptions[i].particles.some(particle => particle.active === true)) {
+            eruptions[i].draw();    // ensures particle fountain doesn't just stop when the oil line stops
+        }
+    }
+}
+
+function drawOilDerrick() {
+    stroke(60,60,60);
+    strokeWeight(width*0.005);
+    line(width*0.39, height*0.07, width*0.38, height*0.205);    // left beam
+    line(width*0.41, height*0.07, width*0.42, height*0.205);    // right beam
+    strokeWeight(height*0.01);
+    line(width*0.3875, height*0.07, width*0.4125, height*0.07); // top beam
+    strokeWeight(height*0.01);
+    line(width*0.3825, height*0.115, width*0.4175, height*0.115)    // mid beam
+    strokeWeight(height*0.012);
+    line(width*0.375, height*0.205, width*0.425, height*0.205);     // platform
+    strokeWeight(width*height*0.000003);
+    line(width*0.3875, height*0.115, width*0.41, height*0.07);  // top cross beams
+    line(width*0.39, height*0.07, width*0.4125, height*0.115);
+    line(width*0.3875, height*0.115, width*0.415, height*0.15); // middle cross beams
+    line(width*0.385, height*0.15, width*0.4125, height*0.115);
+    line(width*0.38, height*0.201, width*0.415, height*0.15);   // bottom cross beams
+    line(width*0.385, height*0.15, width*0.42, height*0.201);
+    fill(60,60,60,255);
+    circle(width*0.4, height*0.062, width*height*0.000002);     // top spout
+    rect(width*0.3975, height*0.058, width*0.005, height*0.001);
+}
+
+function drawVolumeSlider() {
+    // Slider track
+    stroke(0);
+    strokeWeight(width*height*0.0000024);
+    line(sliderX, sliderY, sliderX + sliderWidth, sliderY);
+
+    // Slider handle
+    let handleX = map(sliderVolume, minVolume, maxVolume, sliderX, sliderX + sliderWidth);
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.0000012);
+    circle(handleX, sliderY, sliderDiameter);
+
+    // Display current value
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.0000012);
+    textSize(width*height*0.000012);
+    textAlign(CENTER, CENTER);
+    text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.97);
 }
