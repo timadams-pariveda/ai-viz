@@ -5,10 +5,11 @@ var binCount = 8192;
 var total = 0;
 var lines = new Array(0);
 let audioStarted = false;
+let mobileDevice = false;
 let silenceFlag = true;
 let oilEruption = false;
 var eruptions = new Array(0);
-let landImage, landImage2, waterImage, currImage;
+let landImage, landImage2, waterImage, currImage, qrcode;
 let sliderX, sliderY, sliderWidth, minVolume, maxVolume, sliderVolume, isDragging;
 let micSensitivity, sensitivityModifier;
 let configs = {
@@ -25,6 +26,7 @@ mode = "test"
 function preload() {
     landImage = loadImage('./media/Land_Seismic_Picture.png');
     landImage2 = loadImage('./media/Land_Seismic_Picture_Transparent2.png');
+    qrcode = loadImage('./media/qr_code_pariveda.png');
 }
 
 function setup() {
@@ -40,9 +42,14 @@ function setup() {
     fft.setInput(mic);
     sensitivityModifier = 0.5;  // EDIT FOR VOLUME SENSITIVITY ADJUSTMENTS [~0.1 Very Sensitive | ~1.0 Less Sensitive]
 
+    let details = navigator.userAgent;
+    let regexp = /android|iphone|kindle|ipad/i;
+    // Using test() method to search regexp in details, returns boolean value
+    mobileDevice = regexp.test(details);
+
     currImage = landImage;
 
-    sliderX = width * 0.88;     // Initial slider position
+    sliderX = width * 0.72;     // Initial slider position
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;  // Width of the slider track
     sliderDiameter = width * height * 0.000012;   // Diameter of the slider handle
@@ -104,6 +111,9 @@ function draw() {
     }
 
     drawVolumeSlider();
+    if (!mobileDevice) {
+        image(qrcode, window.innerWidth-qrcode.width/3, window.innerHeight-qrcode.height/3, qrcode.width/3, qrcode.height/3)
+    }
 }
 
 // Oil eruption event
