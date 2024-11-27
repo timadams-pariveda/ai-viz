@@ -7,10 +7,10 @@ var lines = new Array(0);
 let audioStarted = false;
 let mobileDevice = false;
 let silenceFlag = true;
-let oilEruption = false;
 var eruptions = new Array(0);
 let landImage, landImage2, waterImage, currImage, qrcode;
 let sliderX, sliderY, sliderWidth, minVolume, maxVolume, sliderVolume, isDragging;
+let buttonX, buttonY, buttonDiameter;
 let micSensitivity, sensitivityModifier;
 let configs = {
     test: {
@@ -40,7 +40,7 @@ function setup() {
     mic.start();
     fft = new p5.FFT(smoothing, binCount);
     fft.setInput(mic);
-    sensitivityModifier = 0.5;  // EDIT FOR VOLUME SENSITIVITY ADJUSTMENTS [~0.1 Very Sensitive | ~1.0 Less Sensitive]
+    sensitivityModifier = 0.75;  // EDIT FOR VOLUME SENSITIVITY ADJUSTMENTS [~0.1 Less variation | ~1.0 More variation]
 
     let details = navigator.userAgent;
     let regexp = /android|iphone|kindle|ipad/i;
@@ -56,8 +56,11 @@ function setup() {
     minVolume = 1;              // Minimum value
     maxVolume = 100;            // Maximum value
     sliderVolume = 50;          // Initial slider value
-    micSensitivity = sliderVolume * sensitivityModifier;
+    micSensitivity = (maxVolume - sliderVolume + 1) * sensitivityModifier;
     isDragging = false;         // Not dragging initially
+    buttonX = width*0.08;
+    buttonY = height*0.85;
+    buttonDiameter = width*height*0.00013;
 }
 
 function draw() {
@@ -111,8 +114,9 @@ function draw() {
     }
 
     drawVolumeSlider();
+    drawEruptionButton();
     if (!mobileDevice) {
-        image(qrcode, window.innerWidth-qrcode.width/3, window.innerHeight-qrcode.height/3, qrcode.width/3, qrcode.height/3)
+        image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15)
     }
 }
 
@@ -180,7 +184,7 @@ Particle.prototype.update = function() {
     if (this.diameter > 0) {
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;
-        this.velocity.y += 0.5;
+        this.velocity.y += height * 0.0005;
         this.diameter -= this.decay;
     }
     else {
@@ -299,7 +303,7 @@ Line.prototype.updateNew = function(frequency, level) {
         this.reflectPositionY += this.speedScale * this.reflectSlope;
     }
 }
- 
+
 // window/input functions
 
 function windowResized() {
@@ -311,10 +315,14 @@ function windowResized() {
 
 function resizeObjects() {
     // resize slider
-    sliderX = width * 0.88;
+    sliderX = width * 0.72;
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;
     sliderDiameter = width * height * 0.000012;
+    // resize button
+    buttonX = width*0.08;
+    buttonY = height*0.85;
+    buttonDiameter = width*height*0.00013;
     // remove lines / eruptions
     lines = Array(0);
     eruptions = Array(0);
@@ -340,13 +348,17 @@ function mousePressed() {
     if (mouseX >= handleX - sliderDiameter && mouseX <= handleX + sliderDiameter && mouseY >= handleY - sliderDiameter && mouseY <= handleY + sliderDiameter) {
         isDragging = true;
     }
+    if (mouseX >= buttonX - buttonDiameter && mouseX <= buttonX + buttonDiameter && mouseY >= buttonY - buttonDiameter && mouseY <= buttonY + buttonDiameter) {
+        var position = createVector(width*0.4, height);
+        eruptions.push(new Eruption(position));
+    }
 }
 
 function mouseDragged() {
     if (isDragging) {
         let clampedX = constrain(mouseX, sliderX, sliderX + sliderWidth);
         sliderVolume = map(clampedX, sliderX, sliderX + sliderWidth, minVolume, maxVolume);
-        micSensitivity = sliderVolume * sensitivityModifier;
+        micSensitivity = (maxVolume - sliderVolume + 1) * sensitivityModifier;
     }
 }
 
@@ -356,7 +368,6 @@ function mouseReleased() {
 
 document.addEventListener('keydown', function(event) {
     if (event.key === ' ') {
-        oilEruption = true;
         var position = createVector(width*0.4, height);
         eruptions.push(new Eruption(position));
     }
@@ -426,4 +437,14 @@ function drawVolumeSlider() {
     textSize(width*height*0.000012);
     textAlign(CENTER, CENTER);
     text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.97);
+}
+
+function drawEruptionButton() {
+    fill(255,0,0,255);
+    stroke(0,0,0,255);
+    strokeWeight(width*height*0.0000025);
+    circle(buttonX, buttonY, buttonDiameter);
+    fill(255,255,255,255);
+    textSize(width*height*0.000025)
+    text("Click me", buttonX, buttonY);
 }
