@@ -106,17 +106,21 @@ function draw() {
     drawOilDerrick();
 
     if (!audioStarted) {
-        textSize(32);
+        textSize(width*height*0.0001);
         fill(255);
-        stroke(0,0,200);
-        strokeWeight(3);
+        stroke(0);
+        strokeWeight(width*height*0.00001);
         text("Tap to begin...", window.innerWidth / 2, window.innerHeight / 2);
     }
 
-    drawVolumeSlider();
-    drawEruptionButton();
     if (!mobileDevice) {
-        image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15)
+        image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15);
+        drawVolumeSlider();
+        drawEruptionButton();
+    }
+    else {
+        drawVolumeSliderMobile();
+        drawEruptionButtonMobile();
     }
 }
 
@@ -127,7 +131,6 @@ var Eruption = function(position) {
     this.position = position;
     this.endPositionY = position.y;
     this.maxHeight = height*0.062;
-    this.color = [0,0,0];
     this.particles = new Array(0);
 }
 
@@ -150,11 +153,11 @@ Eruption.prototype.draw = function() {
 
 Eruption.prototype.update = function() {
     if (this.endPositionY > this.maxHeight) {
-        this.endPositionY -= 5;
+        this.endPositionY -= height * 0.0075;
     }
     else {
         if (this.position.y > this.maxHeight) {
-            this.position.y -= 5;
+            this.position.y -= height * 0.0075;
         }
         else {
             this.oilEruption = false;
@@ -348,7 +351,7 @@ function mousePressed() {
     if (mouseX >= handleX - sliderDiameter && mouseX <= handleX + sliderDiameter && mouseY >= handleY - sliderDiameter && mouseY <= handleY + sliderDiameter) {
         isDragging = true;
     }
-    if (mouseX >= buttonX - buttonDiameter && mouseX <= buttonX + buttonDiameter && mouseY >= buttonY - buttonDiameter && mouseY <= buttonY + buttonDiameter) {
+    if (mouseX >= buttonX - buttonDiameter/2 && mouseX <= buttonX + buttonDiameter/2 && mouseY >= buttonY - buttonDiameter/2 && mouseY <= buttonY + buttonDiameter/2) {
         var position = createVector(width*0.4, height);
         eruptions.push(new Eruption(position));
     }
@@ -439,6 +442,25 @@ function drawVolumeSlider() {
     text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.97);
 }
 
+function drawVolumeSliderMobile() {
+    stroke(0);
+    strokeWeight(width*height*0.0000024);
+    line(sliderX, sliderY, sliderX + sliderWidth, sliderY);
+
+    let handleX = map(sliderVolume, minVolume, maxVolume, sliderX, sliderX + sliderWidth);
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.000009);
+    circle(handleX, sliderY, sliderDiameter*4);
+
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.000009);
+    textSize(width*height*0.00009);
+    textAlign(CENTER, CENTER);
+    text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.95);
+}
+
 function drawEruptionButton() {
     fill(255,0,0,255);
     stroke(0,0,0,255);
@@ -446,5 +468,15 @@ function drawEruptionButton() {
     circle(buttonX, buttonY, buttonDiameter);
     fill(255,255,255,255);
     textSize(width*height*0.000025)
+    text("Click me", buttonX, buttonY);
+}
+
+function drawEruptionButtonMobile() {
+    fill(255,0,0,255);
+    stroke(0,0,0,255);
+    strokeWeight(width*height*0.0000075);
+    circle(buttonX, buttonY, buttonDiameter*3);
+    fill(255,255,255,255);
+    textSize(width*height*0.000075)
     text("Click me", buttonX, buttonY);
 }
