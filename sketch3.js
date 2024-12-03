@@ -70,7 +70,7 @@ function setup() {
 function draw() {
     //energy[0] = bass, energy[1] = lowMid, energy[2] = mid  ... 
     let energy = [fft.getEnergy("bass"), fft.getEnergy("lowMid"), fft.getEnergy("mid"), fft.getEnergy("highMid"), fft.getEnergy("treble")]
-    background(energy[0], energy[2], energy[4], 255);
+    //background(energy[0], energy[2], energy[4], 255);
     var spectrum = fft.analyze(binCount);   // amplitude at each frequency bin
     var volume = (energy[0] + energy[1] + energy[2] + energy[3] + energy[4]) / 5;
 
@@ -79,9 +79,10 @@ function draw() {
     
     // Create lines when mic input is received
     if (volume > micSensitivity && silenceFlag === true) {
+        var r = random(0,40); var g = random(0,40); var b = random(0,40);
         for (var i = 0; i < 8; i++) {
             var position = createVector(width*0.108, height*0.238, total);
-            lines.push(new Line(position, i));
+            lines.push(new Line(position, i, r, g, b));
             total += 1;
         }
         silenceFlag = false;
@@ -118,7 +119,7 @@ function draw() {
     }
 
     if (!mobileDevice) {
-        image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15);
+        image(qrcode, width-width*0.15, height-width*0.15, width*0.15, width*0.15);
         drawVolumeSlider();
         drawEruptionButton();
         drawFullscreenButton();
@@ -204,7 +205,7 @@ Particle.prototype.update = function() {
 
 // Line functions
 
-var Line = function(position, i) {
+var Line = function(position, i, r, g, b) {
     this.position = position;
     this.i = i;
     this.endPositionX = position.x;
@@ -214,7 +215,7 @@ var Line = function(position, i) {
     this.speedScale = 1; // Will adjust based on how loud the sound is
     this.reflect = false;
     this.maxHeight = height*0.241;
-    this.color = [i*40,0,0];
+    this.color = [(i+1)*r,(i+1)*g,(i+1)*b];
     switch(i) {
         case 0:
             this.slope = 3.84 * (height / width); this.reflectSlope = -2.895 * (height / width);
