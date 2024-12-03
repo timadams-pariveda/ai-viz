@@ -11,6 +11,7 @@ var eruptions = new Array(0);
 let landImage, landImage2, waterImage, currImage, qrcode;
 let sliderX, sliderY, sliderWidth, minVolume, maxVolume, sliderVolume, isDragging;
 let buttonX, buttonY, buttonDiameter;
+let fullscreenX1, fullscreenX2, fullscreenY1, fullscreenY2, isFullscreen;
 let micSensitivity, sensitivityModifier;
 let configs = {
     test: {
@@ -49,7 +50,7 @@ function setup() {
 
     currImage = landImage;
 
-    sliderX = width * 0.72;     // Initial slider position
+    sliderX = width * 0.71;     // Initial slider position
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;  // Width of the slider track
     sliderDiameter = width * height * 0.000012;   // Diameter of the slider handle
@@ -61,6 +62,9 @@ function setup() {
     buttonX = width*0.08;
     buttonY = height*0.85;
     buttonDiameter = width*height*0.00013;
+    fullscreenX1 = width*0.82; fullscreenX2 = width*0.845;
+    fullscreenY1 = height*0.96; fullscreenY2 = height*0.985;
+    isFullscreen = false;
 }
 
 function draw() {
@@ -117,10 +121,12 @@ function draw() {
         image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15);
         drawVolumeSlider();
         drawEruptionButton();
+        drawFullscreenButton();
     }
     else {
         drawVolumeSliderMobile();
         drawEruptionButtonMobile();
+        drawFullscreenButtonMobile();
     }
 }
 
@@ -318,7 +324,7 @@ function windowResized() {
 
 function resizeObjects() {
     // resize slider
-    sliderX = width * 0.72;
+    sliderX = width * 0.71;
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;
     sliderDiameter = width * height * 0.000012;
@@ -326,6 +332,9 @@ function resizeObjects() {
     buttonX = width*0.08;
     buttonY = height*0.85;
     buttonDiameter = width*height*0.00013;
+    // resize fullscreen button
+    fullscreenX1 = width*0.82; fullscreenX2 = width*0.845;
+    fullscreenY1 = height*0.96; fullscreenY2 = height*0.985;
     // remove lines / eruptions
     lines = Array(0);
     eruptions = Array(0);
@@ -354,6 +363,16 @@ function mousePressed() {
     if (mouseX >= buttonX - buttonDiameter/2 && mouseX <= buttonX + buttonDiameter/2 && mouseY >= buttonY - buttonDiameter/2 && mouseY <= buttonY + buttonDiameter/2) {
         var position = createVector(width*0.4, height);
         eruptions.push(new Eruption(position));
+    }
+    if (mouseX >= fullscreenX1 && mouseX <= fullscreenX2 && mouseY >= fullscreenY1 && mouseY <= fullscreenY2) {
+        let fs = fullscreen();
+        fullscreen(!fs);
+        if (isFullscreen) {
+            isFullscreen = false;
+        }
+        else {
+            isFullscreen = true;
+        }
     }
 }
 
@@ -479,4 +498,56 @@ function drawEruptionButtonMobile() {
     fill(255,255,255,255);
     textSize(width*height*0.000075)
     text("Click me", buttonX, buttonY);
+}
+
+function drawFullscreenButton() {
+    stroke(255);
+    if (!isFullscreen) {    // go fullscreen
+        strokeWeight(width*height*0.000002);
+        line(fullscreenX1, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);   // top left
+        line(fullscreenX1, fullscreenY1, fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);   // top right
+        line(fullscreenX2, fullscreenY1, fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);   // bottom left
+        line(fullscreenX1, fullscreenY2, fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);   // bottom right
+        line(fullscreenX2, fullscreenY2, fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+    else {  // exit fullscreen
+        strokeWeight(width*height*0.0000015)
+        line(fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);   // top left
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);   // top right
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);   // bottom left
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);   // bottom right
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+}
+
+function drawFullscreenButtonMobile() {
+    stroke(255);
+    if (!isFullscreen) {
+        strokeWeight(width*height*0.000006);
+        line(fullscreenX1, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);
+        line(fullscreenX1, fullscreenY1, fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);
+        line(fullscreenX2, fullscreenY1, fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);
+        line(fullscreenX1, fullscreenY2, fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);
+        line(fullscreenX2, fullscreenY2, fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+    else {
+        strokeWeight(width*height*0.0000045)
+        line(fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
 }
