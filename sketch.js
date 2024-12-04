@@ -32,7 +32,7 @@ function setup() {
 
   soundFile = loadSound('./media/dreams.mp3');
   mic = new p5.AudioIn();
-  console.log(mic.getSources())
+  console.log(mic.getSources());
   mic.start();
   // mic.amp(0.2);
   // soundFile.amp(0.2);
@@ -56,11 +56,11 @@ function setup() {
   it returns boolean value*/
   mobileDevice = regexp.test(details);
 
-  qrcode = loadImage('./media/Seeing_Sound_Demo_small.png')
+  qrcode = loadImage('./media/Seeing_Sound_Demo_small.png');
 }
 
 function draw() {
-  let energy=[fft.getEnergy("bass"), fft.getEnergy("lowMid"), fft.getEnergy("mid"), fft.getEnergy("highMid"), fft.getEnergy("treble")]
+  let energy=[fft.getEnergy("bass"), fft.getEnergy("lowMid"), fft.getEnergy("mid"), fft.getEnergy("highMid"), fft.getEnergy("treble")];
   background(energy[0], energy[1], energy[2], 10);
   var spectrum = fft.analyze(binCount);
 
@@ -71,12 +71,12 @@ function draw() {
 
   // QR CODE
   if (!mobileDevice) {
-    image(qrcode, window.innerWidth-qrcode.width/3, window.innerHeight-qrcode.height/3, qrcode.width/3, qrcode.height/3)
+    image(qrcode, window.innerWidth-qrcode.width/3, window.innerHeight-qrcode.height/3, qrcode.width/3, qrcode.height/3);
   }
   if (!audioStarted) {
-    textSize(32)
-    fill(255)
-    text("Tap to begin...", window.innerWidth/2-100, window.innerHeight/2)
+    textSize(32);
+    fill(255);
+    text("Tap to begin...", window.innerWidth/2-100, window.innerHeight/2);
   }
 
   // DEBUG
@@ -99,16 +99,16 @@ var Particle = function(position) {
 }
 
 Particle.prototype.update = function(frequency, level) {
-  var warm = map(frequency, 0, 1024, 255, 0)
-  var cool = map(frequency, 0, 1024, 0, 255)
+  var warm = map(frequency, 0, 1024, 255, 0);
+  var cool = map(frequency, 0, 1024, 0, 255);
   if(level*scale > 50){
-    this.colorScale = -this.colorScale
+    this.colorScale = -this.colorScale;
   }
-  this.color[0] = warm*this.colorScale
-  this.color[1] = level*this.colorScale
-  this.color[2] = cool*this.colorScale
+  this.color[0] = warm*this.colorScale;
+  this.color[1] = level*this.colorScale;
+  this.color[2] = cool*this.colorScale;
   if (level * this.scale < 20) {
-    this.position.z = 500
+    this.position.z = 500;
   }
 
   if (configs[mode].direction === 1 ) {
@@ -121,7 +121,7 @@ Particle.prototype.update = function(frequency, level) {
   
   if (!onScreen(this.position)) {
     this.position.x = random(width);
-    this.position.y = random(height)
+    this.position.y = random(height);
   }
 
   // Adjust vertical position slightly based on audio level, but limit upward movement

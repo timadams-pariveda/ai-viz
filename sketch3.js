@@ -11,6 +11,7 @@ var eruptions = new Array(0);
 let landImage, landImage2, waterImage, currImage, qrcode;
 let sliderX, sliderY, sliderWidth, minVolume, maxVolume, sliderVolume, isDragging;
 let buttonX, buttonY, buttonDiameter;
+let fullscreenX1, fullscreenX2, fullscreenY1, fullscreenY2, isFullscreen;
 let micSensitivity, sensitivityModifier;
 let configs = {
     test: {
@@ -49,7 +50,7 @@ function setup() {
 
     currImage = landImage;
 
-    sliderX = width * 0.72;     // Initial slider position
+    sliderX = width * 0.71;     // Initial slider position
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;  // Width of the slider track
     sliderDiameter = width * height * 0.000012;   // Diameter of the slider handle
@@ -61,12 +62,15 @@ function setup() {
     buttonX = width*0.08;
     buttonY = height*0.85;
     buttonDiameter = width*height*0.00013;
+    fullscreenX1 = width*0.82; fullscreenX2 = width*0.845;
+    fullscreenY1 = height*0.96; fullscreenY2 = height*0.985;
+    isFullscreen = false;
 }
 
 function draw() {
     //energy[0] = bass, energy[1] = lowMid, energy[2] = mid  ... 
     let energy = [fft.getEnergy("bass"), fft.getEnergy("lowMid"), fft.getEnergy("mid"), fft.getEnergy("highMid"), fft.getEnergy("treble")]
-    background(energy[0], energy[2], energy[4], 255);
+    //background(energy[0], energy[2], energy[4], 255);
     var spectrum = fft.analyze(binCount);   // amplitude at each frequency bin
     var volume = (energy[0] + energy[1] + energy[2] + energy[3] + energy[4]) / 5;
 
@@ -75,9 +79,10 @@ function draw() {
     
     // Create lines when mic input is received
     if (volume > micSensitivity && silenceFlag === true) {
+        var r = random(0,40); var g = random(0,40); var b = random(0,40);
         for (var i = 0; i < 8; i++) {
             var position = createVector(width*0.108, height*0.238, total);
-            lines.push(new Line(position, i));
+            lines.push(new Line(position, i, r, g, b));
             total += 1;
         }
         silenceFlag = false;
@@ -106,17 +111,23 @@ function draw() {
     drawOilDerrick();
 
     if (!audioStarted) {
-        textSize(32);
+        textSize(width*height*0.0001);
         fill(255);
-        stroke(0,0,200);
-        strokeWeight(3);
+        stroke(0);
+        strokeWeight(width*height*0.00001);
         text("Tap to begin...", window.innerWidth / 2, window.innerHeight / 2);
     }
 
-    drawVolumeSlider();
-    drawEruptionButton();
     if (!mobileDevice) {
-        image(qrcode, width-width*.15, height-width*.15, width*.15, width*.15)
+        image(qrcode, width-width*0.15, height-width*0.15, width*0.15, width*0.15);
+        drawVolumeSlider();
+        drawEruptionButton();
+        drawFullscreenButton();
+    }
+    else {
+        drawVolumeSliderMobile();
+        drawEruptionButtonMobile();
+        drawFullscreenButtonMobile();
     }
 }
 
@@ -127,7 +138,6 @@ var Eruption = function(position) {
     this.position = position;
     this.endPositionY = position.y;
     this.maxHeight = height*0.062;
-    this.color = [0,0,0];
     this.particles = new Array(0);
 }
 
@@ -150,11 +160,11 @@ Eruption.prototype.draw = function() {
 
 Eruption.prototype.update = function() {
     if (this.endPositionY > this.maxHeight) {
-        this.endPositionY -= 5;
+        this.endPositionY -= height * 0.0075;
     }
     else {
         if (this.position.y > this.maxHeight) {
-            this.position.y -= 5;
+            this.position.y -= height * 0.0075;
         }
         else {
             this.oilEruption = false;
@@ -195,7 +205,7 @@ Particle.prototype.update = function() {
 
 // Line functions
 
-var Line = function(position, i) {
+var Line = function(position, i, r, g, b) {
     this.position = position;
     this.i = i;
     this.endPositionX = position.x;
@@ -205,7 +215,7 @@ var Line = function(position, i) {
     this.speedScale = 1; // Will adjust based on how loud the sound is
     this.reflect = false;
     this.maxHeight = height*0.241;
-    this.color = [i*40,0,0];
+    this.color = [(i+1)*r,(i+1)*g,(i+1)*b];
     switch(i) {
         case 0:
             this.slope = 3.84 * (height / width); this.reflectSlope = -2.895 * (height / width);
@@ -315,7 +325,7 @@ function windowResized() {
 
 function resizeObjects() {
     // resize slider
-    sliderX = width * 0.72;
+    sliderX = width * 0.71;
     sliderY = height * 0.97;
     sliderWidth = width * 0.1;
     sliderDiameter = width * height * 0.000012;
@@ -323,6 +333,9 @@ function resizeObjects() {
     buttonX = width*0.08;
     buttonY = height*0.85;
     buttonDiameter = width*height*0.00013;
+    // resize fullscreen button
+    fullscreenX1 = width*0.82; fullscreenX2 = width*0.845;
+    fullscreenY1 = height*0.96; fullscreenY2 = height*0.985;
     // remove lines / eruptions
     lines = Array(0);
     eruptions = Array(0);
@@ -348,9 +361,19 @@ function mousePressed() {
     if (mouseX >= handleX - sliderDiameter && mouseX <= handleX + sliderDiameter && mouseY >= handleY - sliderDiameter && mouseY <= handleY + sliderDiameter) {
         isDragging = true;
     }
-    if (mouseX >= buttonX - buttonDiameter && mouseX <= buttonX + buttonDiameter && mouseY >= buttonY - buttonDiameter && mouseY <= buttonY + buttonDiameter) {
+    if (mouseX >= buttonX - buttonDiameter/2 && mouseX <= buttonX + buttonDiameter/2 && mouseY >= buttonY - buttonDiameter/2 && mouseY <= buttonY + buttonDiameter/2) {
         var position = createVector(width*0.4, height);
         eruptions.push(new Eruption(position));
+    }
+    if (mouseX >= fullscreenX1 && mouseX <= fullscreenX2 && mouseY >= fullscreenY1 && mouseY <= fullscreenY2) {
+        let fs = fullscreen();
+        fullscreen(!fs);
+        if (isFullscreen) {
+            isFullscreen = false;
+        }
+        else {
+            isFullscreen = true;
+        }
     }
 }
 
@@ -439,6 +462,25 @@ function drawVolumeSlider() {
     text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.97);
 }
 
+function drawVolumeSliderMobile() {
+    stroke(0);
+    strokeWeight(width*height*0.0000024);
+    line(sliderX, sliderY, sliderX + sliderWidth, sliderY);
+
+    let handleX = map(sliderVolume, minVolume, maxVolume, sliderX, sliderX + sliderWidth);
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.000009);
+    circle(handleX, sliderY, sliderDiameter*4);
+
+    fill(255);
+    stroke(0);
+    strokeWeight(width*height*0.000009);
+    textSize(width*height*0.00009);
+    textAlign(CENTER, CENTER);
+    text(`Microphone Sensitivity: ${sliderVolume.toFixed(0)}`, sliderX + sliderWidth / 2, sliderY * 0.95);
+}
+
 function drawEruptionButton() {
     fill(255,0,0,255);
     stroke(0,0,0,255);
@@ -447,4 +489,66 @@ function drawEruptionButton() {
     fill(255,255,255,255);
     textSize(width*height*0.000025)
     text("Click me", buttonX, buttonY);
+}
+
+function drawEruptionButtonMobile() {
+    fill(255,0,0,255);
+    stroke(0,0,0,255);
+    strokeWeight(width*height*0.0000075);
+    circle(buttonX, buttonY, buttonDiameter*3);
+    fill(255,255,255,255);
+    textSize(width*height*0.000075)
+    text("Click me", buttonX, buttonY);
+}
+
+function drawFullscreenButton() {
+    stroke(255);
+    if (!isFullscreen) {    // go fullscreen
+        strokeWeight(width*height*0.000002);
+        line(fullscreenX1, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);   // top left
+        line(fullscreenX1, fullscreenY1, fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);   // top right
+        line(fullscreenX2, fullscreenY1, fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);   // bottom left
+        line(fullscreenX1, fullscreenY2, fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);   // bottom right
+        line(fullscreenX2, fullscreenY2, fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+    else {  // exit fullscreen
+        strokeWeight(width*height*0.0000015)
+        line(fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);   // top left
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);   // top right
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);   // bottom left
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);   // bottom right
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+}
+
+function drawFullscreenButtonMobile() {
+    stroke(255);
+    if (!isFullscreen) {
+        strokeWeight(width*height*0.000006);
+        line(fullscreenX1, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);
+        line(fullscreenX1, fullscreenY1, fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1);
+        line(fullscreenX2, fullscreenY1, fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);
+        line(fullscreenX1, fullscreenY2, fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2);
+        line(fullscreenX2, fullscreenY2, fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
+    else {
+        strokeWeight(width*height*0.0000045)
+        line(fullscreenX1, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY1 - (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX1 - (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+        line(fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2, fullscreenX2 + (fullscreenX1 - fullscreenX2) / 3, fullscreenY2 + (fullscreenY1 - fullscreenY2) / 3);
+    }
 }

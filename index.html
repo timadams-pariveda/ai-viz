@@ -12,6 +12,15 @@
 
   </head>
   <body>
-    <script src="sketch3.js"></script>
+    <script>
+      const urlParams = new URLSearchParams(window.location.search);
+      const scriptName = urlParams.get("script") || "sketch3.js";
+      const script = document.createElement("script");
+      script.src = scriptName;
+      script.onerror = () => {
+        console.error(`Failed to load script: ${scriptName}`);
+      };
+      document.body.appendChild(script);
+    </script>
   </body>
 </html>
